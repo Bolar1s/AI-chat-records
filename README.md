@@ -37,6 +37,8 @@ npx ts-node scripts/import-md.ts
 - `TURSO_DATABASE_URL`
 - `TURSO_AUTH_TOKEN`
 
+`TURSO_DATABASE_URL` 需要使用 `libsql://...` 形式的 URL。
+
 然后执行：
 
 ```bash

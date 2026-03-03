@@ -126,4 +126,32 @@
   - `scripts/turso-sync-from-local.ts`: 从本地 `prisma/dev.db` 同步 `Topic/Message` 数据到 Turso（保持 id 不变）。
 - **备注**: 这两个脚本会从 `.env` 读取 `TURSO_DATABASE_URL` 和 `TURSO_AUTH_TOKEN`。
 
+## 2026-03-03
+
+### 13. 推送到 GitHub (Push to GitHub)
+- **目标**: 将 `ai-notes-app` 推送到 GitHub 仓库 `https://github.com/Bolar1s/AI-chat-records.git`。
+- **安全**:
+  - `.env*` 已在 `.gitignore` 中忽略，避免泄露密钥。
+  - 本地 SQLite 数据库文件（如 `prisma/dev.db`）已忽略，避免误提交数据。
+- **步骤**:
+  ```bash
+  git add -A
+  git commit -m "Add-Turso-auth-sync"
+  git branch -M main
+  git remote add origin https://github.com/Bolar1s/AI-chat-records.git
+  git push -u origin main
+  ```
+- **说明**:
+  - 若出现网络连接失败（例如无法连接到 github.com:443），通常是网络/防火墙限制导致，需要在可访问 GitHub 的网络环境下执行 `git push`，或使用 GitHub Desktop 推送。
+
+### 14. Vercel 部署报错修复 (Vercel Build Fix)
+- **错误 1**: Turso URL scheme 不支持：`URL_SCHEME_NOT_SUPPORTED ... got "lbisql:"`
+- **原因**: `TURSO_DATABASE_URL` 需要使用 `libsql://...`，但环境变量误写为 `lbisql://...`。
+- **修复**:
+  - 在代码中对 `TURSO_DATABASE_URL` 做归一化，自动把 `lbisql` 修正为 `libsql`。
+  - 在 Vercel 环境变量中仍建议手动修正为 `libsql://...`（避免误配）。
+- **错误 2**: `/signin` 预渲染失败：`useSearchParams() should be wrapped in a Suspense boundary`
+- **原因**: Page 级别直接使用 `useSearchParams` 在构建阶段触发 CSR bailout 校验，导致构建失败。
+- **修复**: 将登录表单拆分为子 Client Component，并在 `page.tsx` 中使用 `Suspense` 包裹。
+
 

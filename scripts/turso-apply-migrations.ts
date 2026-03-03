@@ -13,6 +13,13 @@ function getRequiredEnv(name: string) {
   return v
 }
 
+function normalizeLibsqlUrl(rawUrl: string) {
+  const url = rawUrl.trim()
+  if (url.startsWith('lbisql://')) return `libsql://${url.slice('lbisql://'.length)}`
+  if (url.startsWith('lbisql:')) return `libsql:${url.slice('lbisql:'.length)}`
+  return url
+}
+
 function listMigrationSqlFiles() {
   const migrationsDir = path.resolve(__dirname, '../prisma/migrations')
   const entries = fs.readdirSync(migrationsDir, { withFileTypes: true })
@@ -25,7 +32,7 @@ function listMigrationSqlFiles() {
 }
 
 async function main() {
-  const url = getRequiredEnv('TURSO_DATABASE_URL')
+  const url = normalizeLibsqlUrl(getRequiredEnv('TURSO_DATABASE_URL'))
   const authToken = getRequiredEnv('TURSO_AUTH_TOKEN')
 
   const client = createClient({ url, authToken })

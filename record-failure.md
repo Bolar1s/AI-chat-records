@@ -63,3 +63,15 @@
 - **错误**: `CALLBACK_CREDENTIALS_JWT_ERROR: Signin in with credentials only supported if JWT strategy is enabled`
 - **原因**: NextAuth 的 Credentials Provider 需要使用 `session.strategy = "jwt"`，否则会导致认证流程报错并返回 500。
 - **解决方案**: 将 NextAuth 配置从 `database` 改为 `jwt`，并使用 `next-auth/jwt` 在 middleware 中校验登录态。
+
+### 9. Turso URL Scheme 不支持 (lbisql 拼写错误)
+- **错误**: `URL_SCHEME_NOT_SUPPORTED ... got "lbisql:"`
+- **原因**: Turso 远程连接必须使用 `libsql://`（或 https/wss 等），但环境变量误写成了 `lbisql://`。
+- **解决方案**:
+  - 在 Vercel 环境变量把 `TURSO_DATABASE_URL` 改为 `libsql://...`（修正拼写）。
+  - 代码侧增加 URL 归一化，自动把 `lbisql` 修正为 `libsql`（防止误配导致构建/运行失败）。
+
+### 10. /signin 构建失败（useSearchParams 缺少 Suspense）
+- **错误**: `useSearchParams() should be wrapped in a Suspense boundary`
+- **原因**: `/signin` 页面在构建阶段预渲染时，直接在 Page 里使用 `useSearchParams` 会触发 CSR bailout 校验并导致构建失败。
+- **解决方案**: 将 `useSearchParams` 移到子 Client Component，并在 Page（Server Component）中用 `Suspense` 包裹。

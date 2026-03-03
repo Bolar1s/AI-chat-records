@@ -13,6 +13,13 @@ function getRequiredEnv(name: string) {
   return v
 }
 
+function normalizeLibsqlUrl(rawUrl: string) {
+  const url = rawUrl.trim()
+  if (url.startsWith('lbisql://')) return `libsql://${url.slice('lbisql://'.length)}`
+  if (url.startsWith('lbisql:')) return `libsql:${url.slice('lbisql:'.length)}`
+  return url
+}
+
 async function createLocalPrisma() {
   const dbFile = path.resolve(__dirname, '../prisma/dev.db').replaceAll('\\', '/')
   return new PrismaClient({
@@ -29,7 +36,7 @@ async function createRemotePrisma() {
   type PrismaAdapter = PrismaClientOptions extends { adapter?: infer A } ? A : never
 
   const adapter = new PrismaLibSQL({
-    url: getRequiredEnv('TURSO_DATABASE_URL'),
+    url: normalizeLibsqlUrl(getRequiredEnv('TURSO_DATABASE_URL')),
     authToken: getRequiredEnv('TURSO_AUTH_TOKEN'),
   }) as unknown as PrismaAdapter
 
