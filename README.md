@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ai-notes-app
 
-## Getting Started
+本项目用于将本地 Markdown 对话笔记导入数据库，并用 Next.js 展示（列表 + 详情页 Markdown 渲染），支持 Turso 云数据库与登录保护。
 
-First, run the development server:
+## 本地开发
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开 http://localhost:3000/
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 导入 Markdown
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+将 `../YYYY-MM-DD.md` 文件导入数据库：
 
-## Learn More
+```bash
+npx ts-node scripts/import-md.ts
+```
 
-To learn more about Next.js, take a look at the following resources:
+## 登录保护（NextAuth Credentials）
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+需要在 `.env` 配置：
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `NEXTAUTH_URL`
+- `NEXTAUTH_SECRET`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
 
-## Deploy on Vercel
+首次使用管理员账号登录会自动创建管理员用户（仅在数据库中尚无任何用户时触发）。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Turso（云数据库）
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+在 `.env` 配置：
+
+- `TURSO_DATABASE_URL`
+- `TURSO_AUTH_TOKEN`
+
+然后执行：
+
+```bash
+npx ts-node scripts/turso-apply-migrations.ts
+npx ts-node scripts/turso-sync-from-local.ts
+```
+
+## Vercel 部署
+
+在 Vercel 项目中设置以下环境变量（至少）：
+
+- `NEXTAUTH_URL`（生产域名，例如 `https://xxx.vercel.app`）
+- `NEXTAUTH_SECRET`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+- `TURSO_DATABASE_URL`
+- `TURSO_AUTH_TOKEN`
+
+项目已配置 `postinstall` 自动执行 `prisma generate`。
+
+部署前确保 Turso 已完成建表与数据同步（在本地执行一次即可）：
+
+```bash
+npx ts-node scripts/turso-apply-migrations.ts
+npx ts-node scripts/turso-sync-from-local.ts
+```
