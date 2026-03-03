@@ -126,6 +126,20 @@
   - `scripts/turso-sync-from-local.ts`: 从本地 `prisma/dev.db` 同步 `Topic/Message` 数据到 Turso（保持 id 不变）。
 - **备注**: 这两个脚本会从 `.env` 读取 `TURSO_DATABASE_URL` 和 `TURSO_AUTH_TOKEN`。
 
+### 12.1 新增 Markdown 后的更新流程 (Refresh After Adding New Markdown)
+- **背景**: Vercel 线上站点读取的是 Turso 数据库，不会自动扫描你本地磁盘上的新 `.md` 文件。
+- **操作**:
+  - 在本地新增 `YYYY-MM-DD.md` 后，重新执行导入脚本：
+    ```bash
+    npx ts-node scripts/import-md.ts
+    ```
+  - 脚本行为：
+    - 若配置了 `TURSO_DATABASE_URL/TURSO_AUTH_TOKEN`，将直接写入 Turso（线上立即可见）。
+    - 否则写入本地 `prisma/dev.db`。
+    - 对同名 Topic（按 title=文件名）会先清空该 Topic 的旧消息再重建，避免重复导入。
+- **线上刷新策略**:
+  - 首页设置为动态渲染（每次请求查库），无需重新部署即可看到新增 Topic。
+
 ## 2026-03-03
 
 ### 13. 推送到 GitHub (Push to GitHub)
@@ -153,5 +167,49 @@
 - **错误 2**: `/signin` 预渲染失败：`useSearchParams() should be wrapped in a Suspense boundary`
 - **原因**: Page 级别直接使用 `useSearchParams` 在构建阶段触发 CSR bailout 校验，导致构建失败。
 - **修复**: 将登录表单拆分为子 Client Component，并在 `page.tsx` 中使用 `Suspense` 包裹。
+
+### 15. Vercel 部署成功 (Vercel Deploy Success)
+- **线上地址**: `https://ai-chat-records.vercel.app/`
+- **配置要点**:
+  - `NEXTAUTH_URL` 需要设置为线上域名（本例为上面的 Vercel 域名），否则登录回调可能异常。
+  - Vercel 环境变量需要包含：`NEXTAUTH_SECRET`、`ADMIN_EMAIL`、`ADMIN_PASSWORD`、`TURSO_DATABASE_URL`、`TURSO_AUTH_TOKEN`。
+- **验收**:
+  - 未登录访问首页会跳转到 `/signin`。
+  - 使用管理员账号登录后可正常浏览 Topic 列表与详情页。
+
+## 第一阶段完成（初始化）
+- 项目已完成从 0 到 1 的搭建：导入脚本、数据模型、列表/详情页、Markdown 渲染、认证保护、Turso 云数据库适配、Vercel 部署上线。
+
+### 16. 技术选型与依据 (Tech Choices & Rationale)
+- **目标约束**:
+  - 将本地 Markdown/聊天记录快速上线为可访问的网站。
+  - 上线后默认私有，仅本人可登录访问。
+  - 运维成本低、可持续迭代（后续加搜索/分页/编辑等）。
+- **React + Tailwind CSS**:
+  - React 作为 Next.js 的 UI 层，生态成熟，适合组件化实现列表/详情/登录页。
+  - Tailwind 适合快速迭代 UI，配合 `@tailwindcss/typography` 可快速获得可读性较好的文章排版。
+  - 权衡：类名较多，但开发效率与一致性收益更高。
+- **Next.js (App Router) 作为全栈框架**:
+  - 用同一个项目同时承载页面、API（NextAuth）、middleware（访问保护），减少额外后端服务。
+  - App Router 便于用 Server Component 直接查库渲染页面，动态路由天然适配 `/topic/[id]`。
+  - 权衡：构建时预渲染约束更严格（例如 `useSearchParams` 需要 Suspense），需按框架规则拆分组件。
+- **Prisma 作为 ORM**:
+  - 以 schema 驱动模型与迁移，保证结构变更可重复、可追踪，TypeScript 类型提示完整。
+  - 权衡：高级 SQL 场景灵活性不如手写 SQL，但对本项目读多写少的需求更合适。
+- **本地 SQLite + 线上 Turso(libsql)**:
+  - 本地导入与调试使用 SQLite 文件最方便（零服务、零运维）。
+  - Vercel 不适合持久化本地 SQLite 文件，因此线上使用 Turso 托管 SQLite 兼容数据库。
+  - 通过环境变量切换：本地默认 `dev.db`，配置 `TURSO_DATABASE_URL/TURSO_AUTH_TOKEN` 后自动走云端。
+- **NextAuth (Credentials) + JWT + Middleware**:
+  - 需求是“私有站点”，不需要开放注册或第三方 OAuth；Credentials 简单直接。
+  - 使用 JWT session strategy 以兼容 Credentials 登录流程，并在 middleware 中统一拦截未登录访问。
+  - 权衡：管理员账号由环境变量提供，需妥善保存并避免提交到仓库。
+- **Markdown 渲染栈**:
+  - `react-markdown` 负责渲染，`remark-gfm` 支持表格/任务列表等语法，`rehype-highlight + highlight.js` 提升代码块可读性。
+  - `rehype-raw` 用于兼容 Markdown 内嵌 HTML。
+  - 权衡：若未来允许“外部用户提交内容”，需要额外做 HTML 白名单/清洗以降低 XSS 风险。
+- **Vercel 部署**:
+  - 与 Next.js 配套良好，GitHub 触发自动部署，环境变量管理方便，适合该项目的低运维目标。
+  - 通过环境变量管理密钥与运行配置，避免敏感信息进入仓库。
 
 

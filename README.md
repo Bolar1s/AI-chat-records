@@ -48,6 +48,8 @@ npx ts-node scripts/turso-sync-from-local.ts
 
 ## Vercel 部署
 
+线上示例：`https://ai-chat-records.vercel.app/`
+
 在 Vercel 项目中设置以下环境变量（至少）：
 
 - `NEXTAUTH_URL`（生产域名，例如 `https://xxx.vercel.app`）
